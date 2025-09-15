@@ -1,0 +1,181 @@
+mariadb:
+  enabled: false
+  auth: #Convertir en variables de entorno
+    rootPassword: "root123"
+    database: "ic4302_db"
+    username: "app_user"
+    password: "app_password"
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+  secondary: #Minimo 2 replicas
+    persistence:
+      replicas: 2 
+      enabled: true
+      size: 8Gi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: "monitoring"
+
+
+elasticsearch:
+  metrics:
+    enabled: true 
+    serviceMonitor:
+      enabled: true
+      namespace: "monitoring"
+
+
+elastic:
+  enabled: false
+  version: 8.6.1
+  replicas: 1 #minimo 3 datanodes
+  name: ic4302
+kibana:
+  version: 8.6.1
+  replicas: 1
+  name: ic4302
+prometheus-elasticsearch-exporter:
+  env:
+    ES_USERNAME: elastic
+  extraEnvSecrets:
+    ES_PASSWORD:
+      secret: ic4302-es-elastic-user
+      key: elastic
+  es:
+    uri: http://ic4302-es-http:9200
+    cluster_settings: true
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+
+
+redis:
+  enabled: false
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: "monitoring"
+
+
+memcached:
+  enabled: true
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: "monitoring"
+
+
+chromadb:
+  enabled: true
+  allowReset: false
+  isPersistent: true
+  persistDirectory: /data
+  logConfigFileLocation: /chroma/log_config.yaml
+  logConfigMap: null
+  logging:
+    root: "INFO"
+    chromadb: "DEBUG"
+    uvicorn: "INFO"
+  anonymizedTelemetry: false
+  corsAllowOrigins: [] # as of version 1.0.x * is not allowed
+  serverHost: "0.0.0.0"
+  serverHttpPort: 8000
+  maxPayloadSizeBytes: "41943040"
+  data:
+    volumeSize: "1Gi"
+    storageClass: null
+    accessModes: [ "ReadWriteOnce" ]
+    retentionPolicyOnDelete: "Delete"
+  telemetry:
+    enabled: false
+    endpoint: ""
+    serviceName: "chroma"
+  maintenance:
+    collection_cache_policy: null # possible values: null or "LRU"
+    collection_cache_limit_bytes: 1000000000 # defaults to 1GB. TODO: this must also observe limits if defined
+  auth: # not working in 1.0.x
+    enabled: false
+
+
+vespa:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: vespaengine/vespa
+    tag: "8.575.21"           
+    pullPolicy: IfNotPresent
+  replicas: 1
+  service:
+    type: ClusterIP            # para exponer NodePort/LoadBalancer 
+    ports:
+      - name: config
+        port: 19071
+        targetPort: 19071
+      - name: http
+        port: 8081
+        targetPort: 8081
+  env:
+    - name: VESPA_CONFIGSERVERS
+      value: "vespa-0.vespa.{{ .Release.Namespace }}.svc.cluster.local"
+  persistence:
+    enabled: true
+    size: 20Gi                 
+    storageClass: null         
+    accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: "monitoring"
+      interval: 30s            
+  ingress:
+    enabled: false           
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+
+postgresql:
+  enabled: true
+  architecture: replication
+  auth:
+    postgresPassword: "root123"     
+    username: "app_user"            
+    password: "app_password"
+    database: "ic4302_db"
+  primary:
+    service:
+      type: ClusterIP
+      ports:
+        postgresql: 5432
+    persistence:
+      enabled: true
+      size: 8Gi           
+      accessModes:
+        - ReadWriteOnce
+  readReplicas:
+    replicaCount: 1
+    persistence:
+      enabled: true
+      size: 8Gi
+      accessModes:
+        - ReadWriteOnce
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: "monitoring"
+

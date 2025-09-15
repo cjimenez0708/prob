@@ -1,0 +1,21 @@
+dependencies:
+- name: redis
+  repository: https://charts.bitnami.com/bitnami
+  version: 19.6.4
+- name: memcached
+  repository: https://charts.bitnami.com/bitnami
+  version: 7.4.11
+- name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 15.5.21
+- name: chromadb
+  repository: https://amikos-tech.github.io/chromadb-chart/
+  version: 0.1.24
+- name: mariadb
+  repository: https://charts.bitnami.com/bitnami
+  version: 18.2.1
+- name: vespa
+  repository: https://unoplat.github.io/vespa-helm-charts
+  version: 0.2.3
+digest: sha256:854d1cb460a5a6665a996980c2a8cfdce46dbdba6bf95054b959c91f4a1cfac2
+generated: "2025-09-12T17:58:31.0601827-06:00"

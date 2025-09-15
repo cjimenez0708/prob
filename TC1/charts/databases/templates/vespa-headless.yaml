@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vespa
+  labels:
+    app: vespa
+spec:
+  clusterIP: None            
+  selector:
+    app: vespa               
+  ports:
+  - name: config
+    port: 19071
+    targetPort: 19071
+  - name: http
+    port: 8081
+    targetPort: 8081

@@ -1,0 +1,14 @@
+config:
+    flask: # Principal configuration for Flask app representing the app
+        enabled: true
+        name: flasktest
+        replicas: 1
+        image: darcecampos/vespa
+
+    dataseeder: # Added configuration for DataSeeder
+        enabled: true
+        name: dataseeder
+        replicas: 1
+        image: darcecampos/dataseeder # To charge with data the database
+
+

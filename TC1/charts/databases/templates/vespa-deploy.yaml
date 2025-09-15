@@ -1,0 +1,74 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vespa-deploy
+  namespace: default
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: deploy
+        image: alpine:3.20
+        command: ["/bin/sh","-c"]
+        args:
+          - |
+            set -e
+            echo "Instalando curl y zip..."
+            apk add --no-cache curl zip >/dev/null
+
+            echo "Copiando archivos del ConfigMap..."
+            mkdir -p /app/myapp/schemas
+            cp /cm/services.xml /app/myapp/services.xml
+            cp /cm/hosts.xml /app/myapp/hosts.xml
+            cp /cm/animales.sd /app/myapp/schemas/animales.sd
+
+            echo "Estructura del paquete:"
+            ls -la /app/myapp
+            ls -la /app/myapp/schemas
+
+            echo "Zippeando (contenido en la raíz del ZIP)..."
+            # OJO: zip del CONTENIDO (.) y dejar myapp.zip un nivel arriba
+            (cd /app/myapp && zip -qr ../myapp.zip .)
+
+            CONFIG_HOST="vespa-0.vespa.default.svc.cluster.local"
+            CONFIG_PORT="19071"
+
+            echo "Asegurando tenant 'default' (PUT)..."
+            curl -sS -X PUT "http://${CONFIG_HOST}:${CONFIG_PORT}/application/v2/tenant/default" || true
+
+            echo "Chequeando health..."
+            tries=0
+            until [ $tries -ge 120 ]; do
+              tries=$((tries+1))
+              OUT="$(curl -sS --max-time 3 http://${CONFIG_HOST}:${CONFIG_PORT}/state/v1/health || true)"
+              echo "Intento $tries/120 → $OUT"
+              echo "$OUT" | grep -Eq '"code"[[:space:]]*:[[:space:]]*"up"' && break
+              sleep 5
+            done
+            echo "$OUT" | grep -Eq '"code"[[:space:]]*:[[:space:]]*"up"' || { echo "Timeout esperando UP"; exit 1; }
+
+            echo "Activando aplicación (prepareandactivate)..."
+            # Enviar ZIP como application/zip y con endpoint 'corto'
+            curl -sS -H "Content-Type: application/zip" \
+              --data-binary @/app/myapp.zip \
+              "http://${CONFIG_HOST}:${CONFIG_PORT}/application/v2/tenant/default/prepareandactivate" \
+              -o /tmp/resp.json
+
+            echo "Respuesta del configserver:"
+            cat /tmp/resp.json
+            echo
+            echo "Aplicación activada."
+        volumeMounts:
+        - name: cm
+          mountPath: /cm
+        - name: app
+          mountPath: /app
+      volumes:
+      - name: cm
+        configMap:
+          name: vespa-app
+      - name: app
+        emptyDir: {}

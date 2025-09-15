@@ -1,0 +1,4 @@
+flask
+chromadb
+pymemcache
+sentence-transformers
